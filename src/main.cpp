@@ -13,9 +13,16 @@ const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redire
 #define NUM_LEDS    96
 #define BRIGHTNESS  50
 
+CRGB prayer_color = CRGB(0xe62e4d);  // Purple color
+CRGB time_color = CRGB(0x2ee6d3);    // Cyan color
+
+
 CRGB leds[NUM_LEDS];
 
 String fajr, duhr, asr, maghrib, aisha;  // Store prayer times
+
+// Store the LED positions
+int fajrPos, duhrPos, asrPos, maghribPos, aishaPos;
 
 // NTP server and time configuration 
 const char* ntpServer = "pool.ntp.org";
@@ -88,53 +95,97 @@ String getCurrentTime() {
   return String(timeStr);
 }
 
-void updatePrayerTimeLEDs() {
-  String currentTime = getCurrentTime();
-  Serial.println("Current Time: " + currentTime);
+int timeToLedPos(String time) {
+  int hours = time.substring(0, 2).toInt();   
+  int minutes = time.substring(3, 5).toInt();
+  int totalMinutes = (hours * 60) + minutes;
 
-  if (currentTime == fajr) {
-    fill_solid(leds, NUM_LEDS, CRGB::Green);  // Green for Fajr
-  } else if (currentTime == duhr) {
-    fill_solid(leds, NUM_LEDS, CRGB::Red);    // Red for Duhr
-  } else if (currentTime == asr) {
-    fill_solid(leds, NUM_LEDS, CRGB::Blue);   // Blue for Asr
-  } else if (currentTime == maghrib) {
-    fill_solid(leds, NUM_LEDS, CRGB::Orange); // Orange for Maghrib
-  } else if (currentTime == aisha) {
-    fill_solid(leds, NUM_LEDS, CRGB::Purple); // Purple for Isha
-  } else {
-    fill_solid(leds, NUM_LEDS, CRGB::Black);  // Turn off LEDs if no prayer time
-  }
+  // Assuming each LED represents 15 minutes (96 LEDs for 24 hours)
+  int ledPos = totalMinutes / 15;
+  return ledPos;
 }
 
 
 
+void initNewDay(){
+
+  fetchPrayerTimes();
+
+  // Convert prayer times to LED positions
+  fajrPos = timeToLedPos(fajr);
+  duhrPos = timeToLedPos(duhr);
+  asrPos = timeToLedPos(asr);
+  maghribPos = timeToLedPos(maghrib);
+  aishaPos = timeToLedPos(aisha);
+
+  Serial.println("Fajr LED Position: " + String(fajrPos));
+  Serial.println("Duhr LED Position: " + String(duhrPos));
+  Serial.println("Asr LED Position: " + String(asrPos));
+  Serial.println("Maghrib LED Position: " + String(maghribPos));
+  Serial.println("Isha LED Position: " + String(aishaPos));
+
+    // Turn on the LEDs at the calculated prayer positions
+  leds[fajrPos] = prayer_color;
+  leds[duhrPos] = prayer_color;
+  leds[asrPos] = prayer_color;
+  leds[maghribPos] = prayer_color;
+  leds[aishaPos] = prayer_color;
+
+  FastLED.show();
+
+
+
+}
+
+int curr_led;
 void setup() {
+
   Serial.begin(9600);
 
   // Connect to Wi-Fi
   connectWiFi();
 
-  // Fetch prayer times
-  fetchPrayerTimes();
-
-  // Initialize the FastLED library
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(BRIGHTNESS);
 
-  // Initialize and configure time with NTP
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
-  // Clear the LEDs to start
-  FastLED.clear();
-  FastLED.show();
-}
+  curr_led = timeToLedPos(getCurrentTime());
+
+  for (int i = 0; i <= curr_led; i++) {
+    leds[i] = time_color; // Set to any color you like, e.g., Blue
+  }
+
+  initNewDay();
+  
+
+  }
 
 void loop() {
-  // Update the LEDs according to prayer times
-  updatePrayerTimeLEDs();
 
-  // You can call additional functions to handle other logic, like progression colors
-  FastLED.show();
-  delay(1000);  // Check every second
+  if (timeToLedPos(getCurrentTime()) > curr_led)
+  {
+      if (curr_led == 96){
+        initNewDay();
+        curr_led = 0;
+        FastLED.clear();
+        FastLED.show();
+      }
+      else
+      {
+
+        curr_led++;
+        if (curr_led != fajrPos && curr_led != duhrPos && curr_led != asrPos && curr_led != maghribPos && curr_led != aishaPos)
+        {
+          leds[curr_led] = time_color;
+          FastLED.show();
+        }
+
+      }
+
+  }
+   
+
+  
+  delay(10000);  // Check every second
 }
