@@ -14,7 +14,7 @@ const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redire
 #define BRIGHTNESS  50
 
 CRGB prayer_color = CRGB(0xe62e4d);  // Purple color
-CRGB time_color = CRGB(0x2ee6d3);    // Cyan color
+CRGB time_color = CRGB(0x1010ff);    // Cyan color
 
 
 CRGB leds[NUM_LEDS];
@@ -147,6 +147,10 @@ void setup() {
 
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(BRIGHTNESS);
+
+  FastLED.clear();
+  FastLED.show();
+  delay(2000);
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
