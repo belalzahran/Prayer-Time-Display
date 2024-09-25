@@ -13,9 +13,9 @@ const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redire
 #define NUM_LEDS    96
 #define BRIGHTNESS  50
 
-CRGB prayer_color = CRGB(0xe62e4d);  // Purple color
-CRGB time_color = CRGB(0x1010ff);    // Cyan color
-
+CRGB prayer_color = CRGB(0xec1386);  // PINK
+CRGB time_color = CRGB(0x1010ff);    // BLUE
+CRGB past_prayer_color = CRGB(0xFFFFFF);
 
 CRGB leds[NUM_LEDS];
 
@@ -101,8 +101,10 @@ int timeToLedPos(String time) {
   int totalMinutes = (hours * 60) + minutes;
 
   // Assuming each LED represents 15 minutes (96 LEDs for 24 hours)
-  int ledPos = totalMinutes / 15;
-  return ledPos;
+  int ledPos = (totalMinutes / 15);
+
+  int led_array_pos = ledPos - 1;
+  return led_array_pos;
 }
 
 
@@ -138,6 +140,7 @@ void initNewDay(){
 }
 
 int curr_led;
+
 void setup() {
 
   Serial.begin(9600);
@@ -154,24 +157,36 @@ void setup() {
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
+
+
+  initNewDay();
+
+
   curr_led = timeToLedPos(getCurrentTime());
 
   for (int i = 0; i <= curr_led; i++) {
-    leds[i] = time_color; // Set to any color you like, e.g., Blue
+
+    if (i == fajrPos || i == duhrPos || i == asrPos || i == maghribPos || i == aishaPos)
+    {
+      leds[i] = past_prayer_color;
+    }
+    else{
+      leds[i] = time_color; // Set to any color you like, e.g., Blue
+    }
+    
   }
 
-  initNewDay();
-  
-
+    FastLED.show();
   }
 
 void loop() {
+
 
   if (timeToLedPos(getCurrentTime()) > curr_led)
   {
       if (curr_led == 96){
         initNewDay();
-        curr_led = 0;
+        curr_led = -1;
         FastLED.clear();
         FastLED.show();
       }
@@ -182,8 +197,14 @@ void loop() {
         if (curr_led != fajrPos && curr_led != duhrPos && curr_led != asrPos && curr_led != maghribPos && curr_led != aishaPos)
         {
           leds[curr_led] = time_color;
-          FastLED.show();
+          
         }
+        else
+        {
+          leds[curr_led] = past_prayer_color;
+        }
+
+        FastLED.show();
 
       }
 
