@@ -4,8 +4,8 @@
 #include <FastLED.h>
 #include <time.h>
 
-const char* ssid = "Z6";
-const char* password = "Hajj2016";
+const char* ssid = "wifi_name";
+const char* password = "wifi_password";
 const char* apiURL = "http://api.aladhan.com/v1/timingsByCity?city=LakeForest&country=USA&method=2"; 
 const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redirects
 
