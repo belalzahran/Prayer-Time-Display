@@ -139,7 +139,7 @@ void initNewDay(){
 
 }
 
-int curr_led;
+int curr_led_pos;
 
 void setup() {
 
@@ -162,9 +162,9 @@ void setup() {
   initNewDay();
 
 
-  curr_led = timeToLedPos(getCurrentTime());
+  curr_led_pos = timeToLedPos(getCurrentTime());
 
-  for (int i = 0; i <= curr_led; i++) {
+  for (int i = 0; i <= curr_led_pos; i++) {
 
     if (i == fajrPos || i == duhrPos || i == asrPos || i == maghribPos || i == aishaPos)
     {
@@ -182,26 +182,26 @@ void setup() {
 void loop() {
 
 
-  if (timeToLedPos(getCurrentTime()) > curr_led)
+  if (timeToLedPos(getCurrentTime()) > curr_led_pos)
   {
-      if (curr_led == 96){
+      if (curr_led_pos == 95){
         initNewDay();
-        curr_led = -1;
+        curr_led_pos = -1;
         FastLED.clear();
         FastLED.show();
       }
       else
       {
 
-        curr_led++;
-        if (curr_led != fajrPos && curr_led != duhrPos && curr_led != asrPos && curr_led != maghribPos && curr_led != aishaPos)
+        curr_led_pos++;
+        if (curr_led_pos != fajrPos && curr_led_pos != duhrPos && curr_led_pos != asrPos && curr_led_pos != maghribPos && curr_led_pos != aishaPos)
         {
-          leds[curr_led] = time_color;
+          leds[curr_led_pos] = time_color;
           
         }
         else
         {
-          leds[curr_led] = past_prayer_color;
+          leds[curr_led_pos] = past_prayer_color;
         }
 
         FastLED.show();
