@@ -4,8 +4,8 @@
 #include <FastLED.h>
 #include <time.h>
 
-const char* ssid = "wifi_name";
-const char* password = "wifi_password";
+const char* ssid = "Z6";
+const char* password = "Hajj2016";
 const char* apiURL = "http://api.aladhan.com/v1/timingsByCity?city=LakeForest&country=USA&method=2"; 
 const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redirects
 
@@ -194,6 +194,9 @@ void loop() {
       {
 
         curr_led_pos++;
+
+        Serial.println("Current Led Pos is now: " + String(curr_led_pos));
+        Serial.println("Current time is " + String(getCurrentTime()));
         if (curr_led_pos != fajrPos && curr_led_pos != duhrPos && curr_led_pos != asrPos && curr_led_pos != maghribPos && curr_led_pos != aishaPos)
         {
           leds[curr_led_pos] = time_color;
