@@ -202,18 +202,33 @@ void loop() {
           leds[curr_led_pos] = time_color;
           
         }
-        else
-        {
-          leds[curr_led_pos] = past_prayer_color;
-        }
+        // else
+        // {
+        //   leds[curr_led_pos] = past_prayer_color;
+        // }
 
         FastLED.show();
 
       }
 
   }
-   
 
-  
+
+  switch(getCurrentTime())
+  {
+    case fajr:
+
+    case asr:
+
+    case duhr:
+
+    case maghrib:
+
+    case aisha:
+
+    default:
+      break;
+    }
+
   delay(10000);  // Check every second
 }
