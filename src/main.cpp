@@ -14,6 +14,8 @@ const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redire
 #define NUM_LEDS    96
 #define BRIGHTNESS  50
 
+int curr_led_pos;
+
 CRGB prayer_color = CRGB(0xec1386);  // PINK
 CRGB time_color = CRGB(0x1010ff);    // BLUE
 CRGB past_prayer_color = CRGB(0xFFFFFF);
@@ -29,6 +31,44 @@ int fajrPos, duhrPos, asrPos, maghribPos, aishaPos;
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -28800;  // Adjust for your timezone (GMT-8 for PST)
 const int   daylightOffset_sec = 3600;
+
+
+
+
+
+
+CRGB savedLEDState[NUM_LEDS];
+void saveLEDState(){
+  for (int i = 0; i < NUM_LEDS; i++){
+    savedLEDState[i] = leds[i];
+  }
+}
+
+void loadLEDState(){
+  for (int i = 0; i < NUM_LEDS; i++){
+    leds[i] = savedLEDState[i];
+  }
+  FastLED.show();
+}
+
+void blinkStrip()
+{
+
+  for (int i = 0; i <= 29; i++)
+  {
+    fill_solid(leds, NUM_LEDS, CRGB::White);
+    FastLED.show();
+    delay(1000);
+    
+    FastLED.clear();
+    FastLED.show();
+    delay(1000);
+
+  }
+  
+}
+
+
 
 void connectWiFi() {
   Serial.print("Connecting to WiFi");
@@ -140,7 +180,7 @@ void initNewDay(){
 
 }
 
-int curr_led_pos;
+
 
 void setup() {
 
@@ -182,9 +222,9 @@ void setup() {
 
 void loop() {
 
-  String testPrayer = "13:42";
+  // String testPrayer = "13:47";
   std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos};
-  std::set<String> prayerTimes = {fajr, duhr, asr, maghrib, aisha, testPrayer};
+  std::set<String> prayerTimes = {fajr, duhr, asr, maghrib, aisha};
 
   if (timeToLedPos(getCurrentTime()) > curr_led_pos)
   {
@@ -240,45 +280,3 @@ void loop() {
 
 
 
-
-
-CRGB savedLEDState[NUM_LEDS];
-void saveLEDState(){
-  for (int i = 0; i < NUM_LEDS; i++){
-    savedLEDState[i] = leds[i];
-  }
-}
-
-void loadLEDState(){
-  for (int i = 0; i < NUM_LEDS; i++){
-    leds[i] = savedLEDState[i];
-  }
-}
-
-void blinkStrip()
-{
-  fill_solid(leds, NUM_LEDS, CRGB::White);
-  FastLED.show();
-  delay(1000);
-  
-  FastLED.clear();
-  FastLED.show();
-  delay(1000);
-
-  fill_solid(leds, NUM_LEDS, CRGB::White);
-  FastLED.show();
-  delay(1000);
-
-  FastLED.clear();
-  FastLED.show();
-  delay(1000);
-
-  fill_solid(leds, NUM_LEDS, CRGB::White);
-  FastLED.show();
-  delay(1000);
-  
-  FastLED.clear();
-  FastLED.show();
-  delay(1000);
-
-}
