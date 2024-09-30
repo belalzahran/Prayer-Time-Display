@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <FastLED.h>
 #include <time.h>
+#include <set>
 
 const char* ssid = "Z6";
 const char* password = "Hajj2016";
@@ -181,6 +182,9 @@ void setup() {
 
 void loop() {
 
+  String testPrayer = "13:42";
+  std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos};
+  std::set<String> prayerTimes = {fajr, duhr, asr, maghrib, aisha, testPrayer};
 
   if (timeToLedPos(getCurrentTime()) > curr_led_pos)
   {
@@ -197,15 +201,16 @@ void loop() {
 
         Serial.println("Current Led Pos is now: " + String(curr_led_pos));
         Serial.println("Current time is " + String(getCurrentTime()));
-        if (curr_led_pos != fajrPos && curr_led_pos != duhrPos && curr_led_pos != asrPos && curr_led_pos != maghribPos && curr_led_pos != aishaPos)
+
+        if (prayerPositions.find(curr_led_pos) == prayerPositions.end())
         {
           leds[curr_led_pos] = time_color;
           
         }
-        // else
-        // {
-        //   leds[curr_led_pos] = past_prayer_color;
-        // }
+        else
+        {
+          leds[curr_led_pos] = past_prayer_color;
+        }
 
         FastLED.show();
 
@@ -214,21 +219,66 @@ void loop() {
   }
 
 
-  switch(getCurrentTime())
+
+  if (prayerTimes.find(getCurrentTime()) != prayerTimes.end())
   {
-    case fajr:
+    saveLEDState();
 
-    case asr:
+    blinkStrip();
 
-    case duhr:
+    loadLEDState();
 
-    case maghrib:
+    delay(60000);
 
-    case aisha:
+  }
 
-    default:
-      break;
-    }
+  delay(1000);  // Check every second
+}
 
-  delay(10000);  // Check every second
+
+
+
+
+
+
+
+CRGB savedLEDState[NUM_LEDS];
+void saveLEDState(){
+  for (int i = 0; i < NUM_LEDS; i++){
+    savedLEDState[i] = leds[i];
+  }
+}
+
+void loadLEDState(){
+  for (int i = 0; i < NUM_LEDS; i++){
+    leds[i] = savedLEDState[i];
+  }
+}
+
+void blinkStrip()
+{
+  fill_solid(leds, NUM_LEDS, CRGB::White);
+  FastLED.show();
+  delay(1000);
+  
+  FastLED.clear();
+  FastLED.show();
+  delay(1000);
+
+  fill_solid(leds, NUM_LEDS, CRGB::White);
+  FastLED.show();
+  delay(1000);
+
+  FastLED.clear();
+  FastLED.show();
+  delay(1000);
+
+  fill_solid(leds, NUM_LEDS, CRGB::White);
+  FastLED.show();
+  delay(1000);
+  
+  FastLED.clear();
+  FastLED.show();
+  delay(1000);
+
 }
