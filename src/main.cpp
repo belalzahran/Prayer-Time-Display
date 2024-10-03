@@ -23,9 +23,11 @@ CRGB past_prayer_color = CRGB(0xFFFFFF);
 CRGB leds[NUM_LEDS];
 
 String fajr, duhr, asr, maghrib, aisha;  // Store prayer times
+String testPrayer;
 
 // Store the LED positions
 int fajrPos, duhrPos, asrPos, maghribPos, aishaPos;
+int testPrayerPos;
 
 // NTP server and time configuration 
 const char* ntpServer = "pool.ntp.org";
@@ -38,20 +40,21 @@ const int   daylightOffset_sec = 3600;
 
 
 CRGB savedLEDState[NUM_LEDS];
-void saveLEDState(){
+
+void save_LED_state(){
   for (int i = 0; i < NUM_LEDS; i++){
     savedLEDState[i] = leds[i];
   }
 }
 
-void loadLEDState(){
+void load_LED_state(){
   for (int i = 0; i < NUM_LEDS; i++){
     leds[i] = savedLEDState[i];
   }
   FastLED.show();
 }
 
-void blinkStrip()
+void blink_led_strip()
 {
 
   for (int i = 0; i <= 29; i++)
@@ -68,9 +71,7 @@ void blinkStrip()
   
 }
 
-
-
-void connectWiFi() {
+void connect_wifi() {
   Serial.print("Connecting to WiFi");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -80,7 +81,7 @@ void connectWiFi() {
   Serial.println(" Connected!");
 }
 
-void fetchPrayerTimes() {
+void fetch_prayer_times_from_api() {
   HTTPClient http;
   http.begin(apiURL);
   int httpCode = http.GET();
@@ -112,6 +113,7 @@ void fetchPrayerTimes() {
     asr = doc["data"]["timings"]["Asr"].as<String>();
     maghrib = doc["data"]["timings"]["Maghrib"].as<String>();
     aisha = doc["data"]["timings"]["Isha"].as<String>();
+    testPrayer = "14:50";
 
     Serial.println("Prayer times fetched:");
     Serial.println("Fajr: " + fajr);
@@ -125,7 +127,7 @@ void fetchPrayerTimes() {
   http.end();
 }
 
-String getCurrentTime() {
+String get_current_time_string() {
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
     Serial.println("Failed to obtain time");
@@ -136,7 +138,7 @@ String getCurrentTime() {
   return String(timeStr);
 }
 
-int timeToLedPos(String time) {
+int time_to_led_position(String time) {
   int hours = time.substring(0, 2).toInt();   
   int minutes = time.substring(3, 5).toInt();
   int totalMinutes = (hours * 60) + minutes;
@@ -144,22 +146,22 @@ int timeToLedPos(String time) {
   // Assuming each LED represents 15 minutes (96 LEDs for 24 hours)
   int ledPos = (totalMinutes / 15);
 
-  int led_array_pos = ledPos - 1;
-  return led_array_pos;
+  return ledPos;
 }
 
 
 
-void initNewDay(){
+void get_show_daily_prayer_times(){
 
-  fetchPrayerTimes();
+  fetch_prayer_times_from_api();
 
   // Convert prayer times to LED positions
-  fajrPos = timeToLedPos(fajr);
-  duhrPos = timeToLedPos(duhr);
-  asrPos = timeToLedPos(asr);
-  maghribPos = timeToLedPos(maghrib);
-  aishaPos = timeToLedPos(aisha);
+  fajrPos = time_to_led_position(fajr);
+  duhrPos = time_to_led_position(duhr);
+  asrPos = time_to_led_position(asr);
+  maghribPos = time_to_led_position(maghrib);
+  aishaPos = time_to_led_position(aisha);
+  testPrayerPos = time_to_led_position(testPrayer);
 
   Serial.println("Fajr LED Position: " + String(fajrPos));
   Serial.println("Duhr LED Position: " + String(duhrPos));
@@ -173,6 +175,7 @@ void initNewDay(){
   leds[asrPos] = prayer_color;
   leds[maghribPos] = prayer_color;
   leds[aishaPos] = prayer_color;
+  leds[testPrayerPos] = prayer_color;
 
   FastLED.show();
 
@@ -187,7 +190,7 @@ void setup() {
   Serial.begin(9600);
 
   // Connect to Wi-Fi
-  connectWiFi();
+  connect_wifi();
 
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(BRIGHTNESS);
@@ -200,14 +203,14 @@ void setup() {
 
 
 
-  initNewDay();
+  get_show_daily_prayer_times();
 
-
-  curr_led_pos = timeToLedPos(getCurrentTime());
+  std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};   
+  curr_led_pos = time_to_led_position(get_current_time_string());
 
   for (int i = 0; i <= curr_led_pos; i++) {
 
-    if (i == fajrPos || i == duhrPos || i == asrPos || i == maghribPos || i == aishaPos)
+    if (prayerPositions.find(curr_led_pos) != prayerPositions.end()) // if curr led is equal to any of the prayPos
     {
       leds[i] = past_prayer_color;
     }
@@ -220,17 +223,19 @@ void setup() {
     FastLED.show();
   }
 
+
+
 void loop() {
 
   // String testPrayer = "13:47";
-  std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos};
-  std::set<String> prayerTimes = {fajr, duhr, asr, maghrib, aisha};
+  std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};
+  std::set<String> prayerTimes = {fajr, duhr, asr, maghrib, aisha, testPrayer};
 
-  if (timeToLedPos(getCurrentTime()) > curr_led_pos)
+  if (time_to_led_position(get_current_time_string()) > curr_led_pos)
   {
-      if (curr_led_pos == 95){
-        initNewDay();
-        curr_led_pos = -1;
+      if (curr_led_pos == 96){
+        get_show_daily_prayer_times();
+        curr_led_pos = 0;
         FastLED.clear();
         FastLED.show();
       }
@@ -240,16 +245,12 @@ void loop() {
         curr_led_pos++;
 
         Serial.println("Current Led Pos is now: " + String(curr_led_pos));
-        Serial.println("Current time is " + String(getCurrentTime()));
+        Serial.println("Current time is " + String(get_current_time_string()));
 
         if (prayerPositions.find(curr_led_pos) == prayerPositions.end())
         {
           leds[curr_led_pos] = time_color;
           
-        }
-        else
-        {
-          leds[curr_led_pos] = past_prayer_color;
         }
 
         FastLED.show();
@@ -257,22 +258,34 @@ void loop() {
       }
 
   }
+  
+  String curr_time = get_current_time_string();
 
-
-
-  if (prayerTimes.find(getCurrentTime()) != prayerTimes.end())
+  if (prayerTimes.find(curr_time) != prayerTimes.end())
   {
-    saveLEDState();
 
-    blinkStrip();
+    save_LED_state();
 
-    loadLEDState();
+    blink_led_strip();
+
+    load_LED_state();
 
     delay(60000);
+
+    leds[time_to_led_position(curr_time)] = past_prayer_color;
 
   }
 
   delay(1000);  // Check every second
+
+
+
+
+
+
+
+
+
 }
 
 
