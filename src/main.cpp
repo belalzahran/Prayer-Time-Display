@@ -23,11 +23,13 @@ CRGB past_prayer_color = CRGB(0xFFFFFF);
 CRGB leds[NUM_LEDS];
 
 String fajr, duhr, asr, maghrib, aisha;  // Store prayer times
-// String testPrayer = "15:32";
+String testPrayer = "18:08";
+
+bool testing = false;
 
 // Store the LED positions
 int fajrPos,duhrPos, asrPos, maghribPos, aishaPos;
-// int testPrayerPos;
+int testPrayerPos;
 
 // NTP server and time configuration 
 const char* ntpServer = "pool.ntp.org";
@@ -54,21 +56,66 @@ void load_LED_state(){
   FastLED.show();
 }
 
-void blink_led_strip()
+void animation(int curr_position)
 {
+  
 
-  for (int i = 0; i <= 29; i++)
+  for (int y = 0; y < 3; y++)
   {
-    fill_solid(leds, NUM_LEDS, CRGB::White);
-    FastLED.show();
-    delay(1000);
-    
-    FastLED.clear();
-    FastLED.show();
-    delay(1000);
+      // turn off all but prayer led -->
+      for (int i = 0; i < NUM_LEDS; i++){
+        
+        if (i != curr_position)
+        {
+          leds[i] = CRGB::Black;
+        }
+
+        delay(50);
+        FastLED.show();
+      }
+
+      // light up all but prayer led blue <--
+      for (int i = NUM_LEDS - 1; i >= 0; i--){
+        
+        if (i != curr_position)
+        {
+          leds[i] = time_color;
+        }
+
+        delay(50);
+        FastLED.show();
+      }
+
+      // turn off all but prayer led -->
+      for (int i = 0; i < NUM_LEDS; i++){
+        
+        if (i != curr_position)
+        {
+          leds[i] = CRGB::Black;
+        }
+
+        delay(50);
+        FastLED.show();
+      }
+
+      // light up all but prayer led with load STATE <--
+      for (int i = NUM_LEDS - 1; i >= 0; i--){
+        
+        if (i != curr_position)
+        {
+          leds[i] = savedLEDState[i];
+        }
+
+        delay(50);
+        FastLED.show();
+      }
 
   }
+
+
   
+
+
 }
 
 void connect_wifi() {
@@ -115,11 +162,15 @@ void fetch_prayer_times_from_api() {
     aisha = doc["data"]["timings"]["Isha"].as<String>();
 
     Serial.println("Prayer times fetched:");
+    if (testing){
+      Serial.println("TestPrayer: " + testPrayer);
+    }
     Serial.println("Fajr: " + fajr);
     Serial.println("Duhr: " + duhr);
     Serial.println("Asr: " + asr);
     Serial.println("Maghrib: " + maghrib);
     Serial.println("Isha: " + aisha);
+    
   } else {
     Serial.println("Failed to retrieve prayer times. HTTP error code: " + String(httpCode));
   }
@@ -160,8 +211,15 @@ void get_show_daily_prayer_times(){
   asrPos = time_to_led_position(asr);
   maghribPos = time_to_led_position(maghrib);
   aishaPos = time_to_led_position(aisha);
-  // testPrayerPos = time_to_led_position(testPrayer);
 
+
+  if (testing){
+    testPrayerPos = time_to_led_position(testPrayer);
+    Serial.println("TestPrayer LED Position: " + String(testPrayerPos));
+  }
+  
+
+  
   Serial.println("Fajr LED Position: " + String(fajrPos));
   Serial.println("Duhr LED Position: " + String(duhrPos));
   Serial.println("Asr LED Position: " + String(asrPos));
@@ -174,7 +232,9 @@ void get_show_daily_prayer_times(){
   leds[asrPos] = prayer_color;
   leds[maghribPos] = prayer_color;
   leds[aishaPos] = prayer_color;
-  // leds[testPrayerPos] = prayer_color;
+  if (testing){
+    leds[testPrayerPos] = prayer_color;
+  }
 
   FastLED.show();
 
@@ -209,36 +269,55 @@ void setup() {
 
   get_show_daily_prayer_times();
 
-  std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos};   
-  // std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};   
-  curr_led_pos = time_to_led_position(get_current_time_string());
+  std::set<int> prayerPositions;
 
-  for (int i = 1; i <= curr_led_pos; i++) {
-
-    if (prayerPositions.find(i) != prayerPositions.end()) // if curr led is equal to any of the prayPos
-    {
-      leds[i-1] = past_prayer_color;
-    }
-    else{
-      leds[i-1] = time_color; // Set to any color you like, e.g., Blue
-    }
-    
+  if (testing){
+    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};
+  }
+  else{
+    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos}; 
   }
 
+  curr_led_pos = time_to_led_position(get_current_time_string());
+
+  for (int i = 0; i <= curr_led_pos; i++) 
+  {
+    if (prayerPositions.find(i) != prayerPositions.end()) // if curr led is equal to any of the prayPos
+    {
+      if (curr_led_pos != i)
+      {
+        leds[i] = past_prayer_color;
+      }
+    }
+    else
+    {
+      leds[i] = time_color; // Set to any color you like, e.g., Blue
+    }
     FastLED.show();
+    delay(50);
+  }
+
+    
 
     Serial.println("The current led position including 0 is now: " + String(curr_led_pos));
 }
 
 void loop() {
 
-  // Sets without test
-  std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos};
-  std::set<String> prayerTimes = {fajr, duhr, asr, maghrib, aisha};
+   std::set<int> prayerPositions;
+   std::set<String> prayerTimes;
 
-  // sets with test
-  // std::set<int> prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};
-  // std::set<String> prayerTimes = {fajr, duhr, asr, maghrib, aisha, testPrayer};
+  if (testing)
+  {
+    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};
+    prayerTimes = {fajr, duhr, asr, maghrib, aisha, testPrayer};
+  }
+  else{
+    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos};
+    prayerTimes = {fajr, duhr, asr, maghrib, aisha};
+  }
+
+
   if (time_to_led_position(get_current_time_string()) > curr_led_pos)
   {
       if (curr_led_pos == 96){
@@ -268,22 +347,23 @@ void loop() {
   }
   
   String curr_time = get_current_time_string();
+  int curr_position = time_to_led_position(curr_time);
 
   if (prayerTimes.find(curr_time) != prayerTimes.end())
   {
 
     save_LED_state();
 
-    blink_led_strip();
+    animation(curr_position);
 
     load_LED_state();
 
     Serial.println("AT THE END: Current time is " + String(curr_time));
     Serial.println("led position we are one is : " + String(time_to_led_position(curr_time)));
 
-    leds[time_to_led_position(curr_time)] = past_prayer_color;
+    leds[curr_position] = past_prayer_color;
+    FastLED.show();
 
-    delay(20000);
   }
 
   delay(1000);  // Check every second
