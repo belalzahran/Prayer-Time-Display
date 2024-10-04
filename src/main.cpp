@@ -14,16 +14,18 @@ const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redire
 #define NUM_LEDS    96
 #define BRIGHTNESS  50
 
-int curr_led_pos;
+int led_position;
 
 CRGB prayer_color = CRGB(0xec1386);  // PINK
 CRGB time_color = CRGB(0x1010ff);    // BLUE
 CRGB past_prayer_color = CRGB(0xFFFFFF);
 
 CRGB leds[NUM_LEDS];
+std::set<int> prayerPositions;
+std::set<String> prayerTimes;
 
 String fajr, duhr, asr, maghrib, aisha;  // Store prayer times
-String testPrayer = "18:08";
+String testPrayer = "18:34";
 
 bool testing = false;
 
@@ -35,10 +37,6 @@ int testPrayerPos;
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -28800;  // Adjust for your timezone (GMT-8 for PST)
 const int   daylightOffset_sec = 3600;
-
-
-
-
 
 
 CRGB savedLEDState[NUM_LEDS];
@@ -58,7 +56,6 @@ void load_LED_state(){
 
 void animation(int curr_position)
 {
-  
 
   for (int y = 0; y < 3; y++)
   {
@@ -111,11 +108,6 @@ void animation(int curr_position)
       }
 
   }
-
-
-  
-
-
 }
 
 void connect_wifi() {
@@ -199,7 +191,33 @@ int time_to_led_position(String time) {
   return ledPos;
 }
 
+void updatePrayerSets() {
+    // Clear the sets to start fresh
+    prayerPositions.clear();
+    prayerTimes.clear();
 
+    // Update the prayer positions set
+    prayerPositions.insert(fajrPos);
+    prayerPositions.insert(duhrPos);
+    prayerPositions.insert(asrPos);
+    prayerPositions.insert(maghribPos);
+    prayerPositions.insert(aishaPos);
+    
+    if (testing) {
+        prayerPositions.insert(testPrayerPos);
+    }
+
+    // Update the prayer times set
+    prayerTimes.insert(fajr);
+    prayerTimes.insert(duhr);
+    prayerTimes.insert(asr);
+    prayerTimes.insert(maghrib);
+    prayerTimes.insert(aisha);
+    
+    if (testing) {
+        prayerTimes.insert(testPrayer);
+    }
+}
 
 void get_show_daily_prayer_times(){
 
@@ -242,138 +260,90 @@ void get_show_daily_prayer_times(){
 
 }
 
+void displayLEDs() {
+    for (int i = 0; i <= led_position; i++) {
+        if (prayerPositions.find(i) != prayerPositions.end()) {
+            leds[i] = past_prayer_color;
+        } else {
+            leds[i] = time_color;
+        }
+        FastLED.show();
+        delay(50);
+    }
+}
+
 
 
 void setup() {
 
   Serial.begin(9600);
-
-  // Connect to Wi-Fi
   connect_wifi();
-
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(BRIGHTNESS);
-
   FastLED.clear();
   FastLED.show();
   delay(2000);
-
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-
-  // for (int i = 0; i < NUM_LEDS; i++){
-  //   leds[i] = past_prayer_color;
-  //   FastLED.show();
-  //   delay(100);
-  //   FastLED.clear();
-  // }
-
   get_show_daily_prayer_times();
+  updatePrayerSets();
 
-  std::set<int> prayerPositions;
+  led_position = time_to_led_position(get_current_time_string());
 
-  if (testing){
-    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};
-  }
-  else{
-    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos}; 
-  }
-
-  curr_led_pos = time_to_led_position(get_current_time_string());
-
-  for (int i = 0; i <= curr_led_pos; i++) 
-  {
-    if (prayerPositions.find(i) != prayerPositions.end()) // if curr led is equal to any of the prayPos
-    {
-      if (curr_led_pos != i)
-      {
-        leds[i] = past_prayer_color;
-      }
-    }
-    else
-    {
-      leds[i] = time_color; // Set to any color you like, e.g., Blue
-    }
-    FastLED.show();
-    delay(50);
-  }
+  displayLEDs();
 
     
 
-    Serial.println("The current led position including 0 is now: " + String(curr_led_pos));
+  Serial.println("The current led position including 0 is now: " + String(led_position));
 }
 
-void loop() {
+void loop() 
+{
 
-   std::set<int> prayerPositions;
-   std::set<String> prayerTimes;
+  String curr_time = get_current_time_string();
+  int new_led_position = time_to_led_position(curr_time);  
 
-  if (testing)
+  if (curr_time == "00:00")
   {
-    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos, testPrayerPos};
-    prayerTimes = {fajr, duhr, asr, maghrib, aisha, testPrayer};
-  }
-  else{
-    prayerPositions = {fajrPos, duhrPos, asrPos, maghribPos, aishaPos};
-    prayerTimes = {fajr, duhr, asr, maghrib, aisha};
-  }
+    FastLED.clear();
+    FastLED.show();
 
+    get_show_daily_prayer_times();
+    updatePrayerSets();
 
-  if (time_to_led_position(get_current_time_string()) > curr_led_pos)
-  {
-      if (curr_led_pos == 96){
-        get_show_daily_prayer_times();
-        curr_led_pos = 0;
-        FastLED.clear();
-        FastLED.show();
-      }
-      else
-      {
-
-        curr_led_pos++;
-
-        Serial.println("The current led position including 0 is now: " + String(curr_led_pos));
-        Serial.println("Current time is " + String(get_current_time_string()));
-
-        if (prayerPositions.find(curr_led_pos) == prayerPositions.end())
-        {
-          leds[curr_led_pos] = time_color;
-          
-        }
-
-        FastLED.show();
-
-      }
-
+    led_position = 0;
   }
   
-  String curr_time = get_current_time_string();
-  int curr_position = time_to_led_position(curr_time);
+
+
+  if (new_led_position > led_position)
+  {
+
+    led_position++;
+    Serial.println("The current led position including 0 is now: " + String(led_position));
+    Serial.println("Current time is " + String(get_current_time_string()));
+
+    if (prayerPositions.find(led_position) == prayerPositions.end())
+    {
+      leds[led_position] = time_color;
+      FastLED.show();
+    }
+
+  }
 
   if (prayerTimes.find(curr_time) != prayerTimes.end())
   {
 
     save_LED_state();
-
-    animation(curr_position);
-
-    load_LED_state();
+    animation(new_led_position);
 
     Serial.println("AT THE END: Current time is " + String(curr_time));
     Serial.println("led position we are one is : " + String(time_to_led_position(curr_time)));
-
-    leds[curr_position] = past_prayer_color;
+    leds[new_led_position] = past_prayer_color;
     FastLED.show();
 
   }
 
   delay(1000);  // Check every second
-
-
-
-
-
-
-
 
 
 }
