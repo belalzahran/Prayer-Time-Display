@@ -12,13 +12,13 @@ const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redire
 
 #define LED_PIN     2
 #define NUM_LEDS    96
-#define BRIGHTNESS  50
+#define BRIGHTNESS  30
 
 int led_position;
 
 CRGB prayer_color = CRGB(0xec1386);  // PINK
-CRGB time_color = CRGB(0x1010ff);    // BLUE
-CRGB past_prayer_color = CRGB(0xFFFFFF);
+CRGB time_color = CRGB(0xffffff);    // BLUE
+CRGB past_prayer_color = CRGB(0xee0000); // RED
 
 CRGB leds[NUM_LEDS];
 std::set<int> prayerPositions;
