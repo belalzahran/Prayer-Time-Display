@@ -12,7 +12,7 @@ const char* baseURL = "http://api.aladhan.com";  // Base URL for relative redire
 
 #define LED_PIN     2
 #define NUM_LEDS    96
-#define BRIGHTNESS  30
+#define BRIGHTNESS  15
 
 int led_position;
 
